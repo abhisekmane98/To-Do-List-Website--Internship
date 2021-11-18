@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Todo App</title>
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.css"
+    />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="my-3">Add Todo</h1>
+      <div style="margin: 2rem 0" class="mb-3">
+        <label style="font-size: 2rem" for="titleInput" class="form-label"
+          >Title</label
+        >
+        <input
+          id="titleInput"
+          type="text"
+          class="form-control"
+          aria-describedby="emailHelp"
+        />
+      </div>
+      <div style="margin: 2rem 0" class="mb-3">
+        <label style="font-size: 2rem" for="descInput" class="form-label"
+          >Description</label
+        >
+        <input id="descInput" type="text" class="form-control" />
+      </div>
+      <div style="margin: 4rem 0">
+        <label style="font-size: 2rem" for="scheduleDate" class="form-label"
+          >Scheduled Date</label
+        >
+        <div class="row">
+          <div class="col-sm-6">
+            <div class="form-group">
+              <div class="input-group date" id="datetimepicker1">
+                <input id="scheduleDate" type="text" class="form-control" />
+                <span class="input-group-addon">
+                  <span class="glyphicon glyphicon-calendar"></span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="margin: 4rem 0">
+        <label style="font-size: 2rem" for="scheduleDate" class="form-label"
+          >Completion Date</label
+        >
+        <div class="row">
+          <div class="col-sm-6">
+            <div class="form-group">
+              <div class="input-group date" id="datetimepicker2">
+                <input id="completionDate" type="text" class="form-control" />
+                <span class="input-group-addon">
+                  <span class="glyphicon glyphicon-calendar"></span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button onclick="addTodo()" class="btn btn-primary">Add Todo</button>
+      <table class="table my-5">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <script>
+      $(document).ready(function () {
+        $("#datetimepicker1").datetimepicker();
+        $("#datetimepicker2").datetimepicker();
+      });
+      const digits_only = (string) =>
+        [...string].every((c) => "0123456789".includes(c));
+      const insertTodos = (data) => {
+        var bodyHtml = "";
+        var headHtml = "";
+        console.log(data);
+        if (data.TodoList.length > 0) {
+          const tableHead = document.getElementById("tableHead");
+          headHtml =
+            "<tr><th scope='col'>Sno.</th><th scope='col'>Title</th><th scope='col'>Description</th> <th scope='col'>Sceduled Date</th> <th scope='col'>Completion Date</th><th scope='col'>Actions</th></tr>";
+          tableHead.innerHTML = headHtml;
+        }
+        for (var i = 0; i < data.TodoList.length; i++) {
+          console.log(data);
+          bodyHtml +=
+            `
+                      <tr style="width:100vw;">
+                      <th scope="row">${i + 1}</th>
+                      <td id="title` +
+            data.TodoList[i].unique_id +
+            `">${data.TodoList[i].title}</td>
+                      <td id="desc` +
+            data.TodoList[i].unique_id +
+            `">${data.TodoList[i].desc}</td>
+                      <td>${data.TodoList[i].scheduleDate}</td>
+                      <td>${data.TodoList[i].completionDate}</td>
+                      <td>
+                      <button onclick="deleteTodo(` +
+            data.TodoList[i].unique_id +
+            `)"  class='btn btn-outline-primary'>Delete</button></td>
+                    </tr>`;
+        }
+        document.getElementById("tableBody").innerHTML = bodyHtml;
+        document.getElementById("titleInput").value = "";
+        document.getElementById("descInput").value = "";
+        document.getElementById("scheduleDate").value = "";
+        document.getElementById("completionDate").value = "";
+      };
+      fetch("/show", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+        .then((res) => {
+          return res.json();
+        })
+        .then((data) => {
+          insertTodos(data);
+          if (data.TodoList.length == 0) {
+            const tableHead = document.getElementById("tableHead");
+            tableHead.innerHTML =
+              "<div style='background-color:rgba(255,0,0,0.2);margin:2rem 0' class='alert alert-primary' role='alert'>No Todos Found . Add your First Todo</div>";
+          }
+        })
+        .catch((err) => {
+          alert("Something went wrong...");
+        });
+      const addTodo = () => {
+        const title = document.getElementById("titleInput").value;
+        const desc = document.getElementById("descInput").value;
+        const scheduleDate = document.getElementById("scheduleDate").value;
+        const completionDate = document.getElementById("completionDate").value;
+        if (!title || !desc || !scheduleDate || !completionDate) {
+          alert("Please fill all the fields");
+          return;
+        }
+        if (digits_only(title) || digits_only(desc)) {
+          alert("Numbers are not allowed for any of the fields!!");
+          return;
+        }
+        const sd = new Date(scheduleDate);
+        const cd = new Date(completionDate)
+        if(cd <= sd){
+          alert("compeletion date can be only set after the scheduled date");
+          return;
+        }
+        const data = {
+          title: title,
+          desc: desc,
+          scheduleDate: scheduleDate,
+          completionDate: completionDate
+        };
+        fetch("/add", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        })
+          .then((res) => {
+            return res.json();
+          })
+          .then((data) => {
+            insertTodos(data);
+          })
+          .catch((err) => {
+            alert("Something went wrong...");
+          });
+      };
+      const deleteTodo = (id) => {
+        fetch(`/delete/${id}/`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+          .then((res) => {
+            return res.json();
+          })
+          .then((data) => {
+            insertTodos(data);
+            if (data.TodoList.length == 0) {
+              const tableHead = document.getElementById("tableHead");
+              tableHead.innerHTML =
+                "<div style='background-color:rgba(255,0,0,0.2);margin:2rem 0' class='alert alert-primary' role='alert'>No Todos Found . Add your First Todo</div>";
+            }
+          })
+          .catch((err) => {
+            alert("Something went wrong...");
+          });
+      };
+    </script>
+  </body>
+</html>
